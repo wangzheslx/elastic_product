@@ -1,0 +1,314 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: ProductService API
+    description: 商品服务定义
+    version: 0.0.1
+paths:
+    /v1/goods:
+        get:
+            tags:
+                - ProductService
+            description: 获取商品列表
+            operationId: ProductService_GoodsList
+            parameters:
+                - name: keywords
+                  in: query
+                  schema:
+                    type: string
+                - name: type
+                  in: query
+                  schema:
+                    type: string
+                - name: minPrice
+                  in: query
+                  schema:
+                    type: number
+                    format: double
+                - name: maxPrice
+                  in: query
+                  schema:
+                    type: number
+                    format: double
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GoodsListResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+        post:
+            tags:
+                - ProductService
+            description: 创建新商品
+            operationId: ProductService_CreateGoods
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateGoodsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/CreateGoodsResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/goods/autocomplete:
+        get:
+            tags:
+                - ProductService
+            description: 自动补全搜索词
+            operationId: ProductService_AutocompleteSearch
+            parameters:
+                - name: prefix
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AutoCompleteResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/goods/search:
+        get:
+            tags:
+                - ProductService
+            description: 搜索商品
+            operationId: ProductService_SearchGoods
+            parameters:
+                - name: query
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SearchGoodsResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/goods/{id}:
+        put:
+            tags:
+                - ProductService
+            description: 更新现有商品
+            operationId: ProductService_UpdateGoods
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateGoodsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UpdateGoodsResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+        delete:
+            tags:
+                - ProductService
+            description: 删除商品
+            operationId: ProductService_DeleteGoods
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteGoodsResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+components:
+    schemas:
+        AutoCompleteResponse:
+            type: object
+            properties:
+                suggestions:
+                    type: array
+                    items:
+                        type: string
+            description: 自动补全响应消息
+        CreateGoodsRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                tags:
+                    type: string
+                type:
+                    type: string
+                description:
+                    type: string
+                price:
+                    type: number
+                    format: double
+                quantity:
+                    type: integer
+                    format: int32
+            description: 创建商品的请求消息
+        CreateGoodsResponse:
+            type: object
+            properties:
+                id:
+                    type: string
+            description: 创建商品的响应消息
+        DeleteGoodsResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+            description: 删除商品的响应消息
+        GoodsInfoResponse:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                tags:
+                    type: string
+                type:
+                    type: string
+                description:
+                    type: string
+                price:
+                    type: number
+                    format: double
+                quantity:
+                    type: integer
+                    format: int32
+            description: 商品信息响应消息
+        GoodsListResponse:
+            type: object
+            properties:
+                total:
+                    type: string
+                list:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/GoodsInfoResponse'
+            description: 列出商品的响应消息
+        GoogleProtobufAny:
+            type: object
+            properties:
+                '@type':
+                    type: string
+                    description: The type of the serialized message.
+            additionalProperties: true
+            description: Contains an arbitrary serialized message along with a @type that describes the type of the serialized message.
+        SearchGoodsResponse:
+            type: object
+            properties:
+                results:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/GoodsInfoResponse'
+            description: 搜索商品的响应消息
+        Status:
+            type: object
+            properties:
+                code:
+                    type: integer
+                    description: The status code, which should be an enum value of [google.rpc.Code][google.rpc.Code].
+                    format: int32
+                message:
+                    type: string
+                    description: A developer-facing error message, which should be in English. Any user-facing error message should be localized and sent in the [google.rpc.Status.details][google.rpc.Status.details] field, or localized by the client.
+                details:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/GoogleProtobufAny'
+                    description: A list of messages that carry the error details.  There is a common set of message types for APIs to use.
+            description: 'The `Status` type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by [gRPC](https://github.com/grpc). Each `Status` message contains three pieces of data: error code, error message, and error details. You can find out more about this error model and how to work with it in the [API Design Guide](https://cloud.google.com/apis/design/errors).'
+        UpdateGoodsRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                tags:
+                    type: string
+                type:
+                    type: string
+                description:
+                    type: string
+                price:
+                    type: number
+                    format: double
+                quantity:
+                    type: integer
+                    format: int32
+            description: 更新商品的请求消息
+        UpdateGoodsResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+            description: 更新商品的响应消息
+tags:
+    - name: ProductService

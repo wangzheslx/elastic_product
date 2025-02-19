@@ -1,0 +1,146 @@
+syntax = "proto3";
+
+package product.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "product-service/api/product/v1;v1";
+option java_multiple_files = true;
+option java_package = "dev.kratos.api.product.v1";
+option java_outer_classname = "ProductProtoV1";
+
+// 商品服务定义
+service ProductService {
+
+  // 创建新商品
+  rpc CreateGoods(CreateGoodsRequest) returns (CreateGoodsResponse) {
+    option (google.api.http) = {
+      post: "/v1/goods"
+      body: "*"
+    };
+  }
+
+  // 获取商品列表
+  rpc GoodsList(GoodsFilterRequest) returns (GoodsListResponse) {
+    option (google.api.http) = {
+      get: "/v1/goods"
+    };
+  }
+
+  // 更新现有商品
+  rpc UpdateGoods(UpdateGoodsRequest) returns (UpdateGoodsResponse) {
+    option (google.api.http) = {
+      put: "/v1/goods/{id}"
+      body: "*"
+    };
+  }
+
+  // 删除商品
+  rpc DeleteGoods(DeleteGoodsRequest) returns (DeleteGoodsResponse) {
+    option (google.api.http) = {
+      delete: "/v1/goods/{id}"
+    };
+  }
+
+  // 搜索商品
+  rpc SearchGoods(SearchGoodsRequest) returns (SearchGoodsResponse) {
+    option (google.api.http) = {
+      get: "/v1/goods/search"
+    };
+  }
+
+  // 自动补全搜索词
+  rpc AutocompleteSearch(AutoCompleteRequest) returns (AutoCompleteResponse) {
+    option (google.api.http) = {
+      get: "/v1/goods/autocomplete"
+    };
+  }
+}
+
+// 创建商品的请求消息
+message CreateGoodsRequest {
+  string name = 1; // 商品名称
+  string tags = 2; // 商品标签
+  string type = 3; // 商品类型
+  string description = 4; // 商品描述
+  double price = 5; // 商品价格
+  int32 quantity = 6; // 商品数量
+}
+
+// 创建商品的响应消息
+message CreateGoodsResponse {
+  int64 id = 1; // 商品ID
+}
+
+// 更新商品的请求消息
+message UpdateGoodsRequest {
+  int64 id = 1; // 商品ID
+  string name = 2; // 商品名称
+  string tags = 3; // 商品标签
+  string type = 4; // 商品类型
+  string description = 5; // 商品描述
+  double price = 6; // 商品价格
+  int32 quantity = 7; // 商品数量
+}
+
+// 更新商品的响应消息
+message UpdateGoodsResponse {
+  bool success = 1; // 更新是否成功
+}
+
+// 删除商品的请求消息
+message DeleteGoodsRequest {
+  int64 id = 1; // 商品ID
+}
+
+// 删除商品的响应消息
+message DeleteGoodsResponse {
+  bool success = 1; // 删除是否成功
+}
+
+// 过滤商品的请求消息
+message GoodsFilterRequest {
+  string keywords = 1; // 关键词
+  string type = 2; // 商品类型
+  double minPrice = 3; // 最低价格
+  double maxPrice = 4; // 最高价格
+  int32 page = 5; // 页码
+  int32 pageSize = 6; // 每页数量
+}
+
+// 列出商品的响应消息
+message GoodsListResponse {
+  int64 total = 1; // 商品总数
+  repeated GoodsInfoResponse list = 2; // 商品列表
+}
+
+// 商品信息响应消息
+message GoodsInfoResponse {
+  int64 id = 1; // 商品ID
+  string name = 2; // 商品名称
+  string tags = 3; // 商品标签
+  string type = 4; // 商品类型
+  string description = 5; // 商品描述
+  double price = 6; // 商品价格
+  int32 quantity = 7; // 商品数量
+}
+
+// 搜索商品的请求消息
+message SearchGoodsRequest {
+  string query = 1; // 搜索查询
+}
+
+// 搜索商品的响应消息
+message SearchGoodsResponse {
+  repeated GoodsInfoResponse results = 1; // 搜索结果
+}
+
+// 自动补全请求消息
+message AutoCompleteRequest {
+  string prefix = 1; // 前缀
+}
+
+// 自动补全响应消息
+message AutoCompleteResponse {
+  repeated string suggestions = 1; // 建议列表
+}
