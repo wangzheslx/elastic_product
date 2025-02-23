@@ -238,22 +238,49 @@ func (g *greeterRepo) SearchGoods(ctx context.Context, req *biz.SearchGoodsReque
 			}
 		}
 	}
-
 	esQuery := map[string]interface{}{
 		"from": (req.Page - 1) * req.Size,
 		"size": req.Size,
 		"query": map[string]interface{}{
 			"bool": map[string]interface{}{
-				"must": append(mustConditions, map[string]interface{}{
-					"range": map[string]interface{}{
-						"price": map[string]interface{}{
-							"gte": 0,
-							"lte": 8999,
-						},
-					},
-				}),
+				"must": mustConditions,
 			},
 		},
+	}
+
+	// 动态添加价格筛选条件
+	if req.MinPrice > 0 || req.MaxPrice > 0 {
+		priceRange := map[string]interface{}{}
+		if req.MinPrice > 0 {
+			priceRange["gte"] = req.MinPrice
+		}
+		if req.MaxPrice > 0 {
+			priceRange["lte"] = req.MaxPrice
+		}
+		esQuery["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"] = append(
+			esQuery["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"].([]map[string]interface{}),
+			map[string]interface{}{
+				"range": map[string]interface{}{
+					"price": priceRange,
+				},
+			},
+		)
+	}
+
+	// 动态添加排序条件
+	if req.Sort != "" {
+		// 动态添加排序条件
+		sortOrder := "asc" // 默认升序
+		if req.Sort == "desc" {
+			sortOrder = "desc"
+		}
+		esQuery["sort"] = []map[string]interface{}{
+			{
+				"price": map[string]interface{}{
+					"order": sortOrder,
+				},
+			},
+		}
 	}
 
 	queryJSON, err := json.Marshal(esQuery)

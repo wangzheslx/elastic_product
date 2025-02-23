@@ -272,6 +272,14 @@ components:
                 pageSize:
                     type: integer
                     format: int32
+                mxprice:
+                    type: integer
+                    format: int32
+                minprice:
+                    type: integer
+                    format: int32
+                sort:
+                    type: string
             description: 搜索商品的请求消息
         SearchGoodsResponse:
             type: object

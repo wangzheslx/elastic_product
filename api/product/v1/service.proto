@@ -132,6 +132,9 @@ message SearchGoodsRequest {
   google.protobuf.Struct query = 1; // 搜索查询条件
   int32 page = 2; // 页码
   int32 pageSize = 3; // 每页数量
+  int32 mxprice = 4; // 最大价格
+  int32 minprice = 5; // 最小价格
+  string sort = 6; // 排序方式
 }
 
 // 搜索商品的响应消息

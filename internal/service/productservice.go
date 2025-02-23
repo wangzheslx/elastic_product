@@ -75,9 +75,12 @@ func (s *ProductServiceService) DeleteGoods(ctx context.Context, req *pb.DeleteG
 }
 func (s *ProductServiceService) SearchGoods(ctx context.Context, req *pb.SearchGoodsRequest) (*pb.SearchGoodsResponse, error) {
 	bizReq := &biz.SearchGoodsRequest{
-		Query: structToMap(req.Query),
-		Page:  req.Page,
-		Size:  req.PageSize,
+		Query:    structToMap(req.Query),
+		Page:     req.Page,
+		Size:     req.PageSize,
+		Sort:     req.Sort,
+		MaxPrice: req.Mxprice,
+		MinPrice: req.Minprice,
 	}
 	resp, err := s.gc.SearchGoods(ctx, bizReq)
 	if err != nil {
