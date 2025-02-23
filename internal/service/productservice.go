@@ -5,6 +5,8 @@ import (
 
 	pb "product/api/product/v1"
 	"product/internal/biz"
+
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type ProductServiceService struct {
@@ -72,8 +74,38 @@ func (s *ProductServiceService) DeleteGoods(ctx context.Context, req *pb.DeleteG
 	return &pb.DeleteGoodsResponse{}, nil
 }
 func (s *ProductServiceService) SearchGoods(ctx context.Context, req *pb.SearchGoodsRequest) (*pb.SearchGoodsResponse, error) {
-	return &pb.SearchGoodsResponse{}, nil
+	bizReq := &biz.SearchGoodsRequest{
+		Query: structToMap(req.Query),
+		Page:  req.Page,
+		Size:  req.PageSize,
+	}
+	resp, err := s.gc.SearchGoods(ctx, bizReq)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]*pb.GoodsInfoResponse, 0)
+	for _, goods := range resp.Results {
+		results = append(results, &pb.GoodsInfoResponse{
+			Id:          goods.ID,
+			Name:        goods.Name,
+			Tags:        goods.Tags,
+			Type:        goods.Type,
+			Description: goods.Description,
+			Price:       goods.Price,
+			Quantity:    goods.Quantity,
+		})
+	}
+	return &pb.SearchGoodsResponse{
+		Results: results,
+	}, nil
 }
 func (s *ProductServiceService) AutocompleteSearch(ctx context.Context, req *pb.AutoCompleteRequest) (*pb.AutoCompleteResponse, error) {
 	return &pb.AutoCompleteResponse{}, nil
+}
+
+func structToMap(s *structpb.Struct) map[string]interface{} {
+	if s == nil {
+		return nil
+	}
+	return s.AsMap()
 }

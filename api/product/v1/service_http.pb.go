@@ -47,7 +47,7 @@ func RegisterProductServiceHTTPServer(s *http.Server, srv ProductServiceHTTPServ
 	r.GET("/v1/goods", _ProductService_GoodsList0_HTTP_Handler(srv))
 	r.PUT("/v1/goods/{id}", _ProductService_UpdateGoods0_HTTP_Handler(srv))
 	r.DELETE("/v1/goods/{id}", _ProductService_DeleteGoods0_HTTP_Handler(srv))
-	r.GET("/v1/goods/search", _ProductService_SearchGoods0_HTTP_Handler(srv))
+	r.POST("/v1/goods/search", _ProductService_SearchGoods0_HTTP_Handler(srv))
 	r.GET("/v1/goods/autocomplete", _ProductService_AutocompleteSearch0_HTTP_Handler(srv))
 }
 
@@ -142,6 +142,9 @@ func _ProductService_DeleteGoods0_HTTP_Handler(srv ProductServiceHTTPServer) fun
 func _ProductService_SearchGoods0_HTTP_Handler(srv ProductServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in SearchGoodsRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
 		if err := ctx.BindQuery(&in); err != nil {
 			return err
 		}
@@ -249,10 +252,10 @@ func (c *ProductServiceHTTPClientImpl) GoodsList(ctx context.Context, in *GoodsF
 func (c *ProductServiceHTTPClientImpl) SearchGoods(ctx context.Context, in *SearchGoodsRequest, opts ...http.CallOption) (*SearchGoodsResponse, error) {
 	var out SearchGoodsResponse
 	pattern := "/v1/goods/search"
-	path := binding.EncodeURL(pattern, in, true)
+	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationProductServiceSearchGoods))
 	opts = append(opts, http.PathTemplate(pattern))
-	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

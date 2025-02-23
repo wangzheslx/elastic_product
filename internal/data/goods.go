@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"product/internal/biz"
 	"strconv"
-
-	"errors"
+	"strings"
 
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -166,9 +166,151 @@ func (g *greeterRepo) GoodsList(context.Context, *biz.GoodsFilterRequest) (*biz.
 }
 
 // SearchGoods implements biz.GoodsRepo.
-func (g *greeterRepo) SearchGoods(context.Context, *biz.SearchGoodsRequest) (*biz.SearchGoodsResponse, error) {
+func (g *greeterRepo) SearchGoods(ctx context.Context, req *biz.SearchGoodsRequest) (*biz.SearchGoodsResponse, error) {
+	mustConditions := []map[string]interface{}{}
+	for field, value := range req.Query {
+		if value != nil {
+			if values, ok := value.([]interface{}); ok {
+				shouldConditions := []map[string]interface{}{}
+				for _, v := range values {
+					if str, ok := v.(string); ok && len(str) > 0 {
+						if len(str) >= 2 && str[0] == '/' && str[len(str)-1] == '/' {
+							shouldConditions = append(shouldConditions, map[string]interface{}{
+								"regexp": map[string]interface{}{
+									field: str[1 : len(str)-1],
+								},
+							})
+						} else if containsWildcard(str) {
+							shouldConditions = append(shouldConditions, map[string]interface{}{
+								"wildcard": map[string]interface{}{
+									field: str,
+								},
+							})
+						} else if len(str) >= 1 && str[0] == '#' {
+							shouldConditions = append(shouldConditions, map[string]interface{}{
+								"match": map[string]interface{}{
+									field: str[1:], // 去掉开头的 #
+								},
+							})
+						} else {
+							shouldConditions = append(shouldConditions, map[string]interface{}{
+								"term": map[string]interface{}{
+									field: str,
+								},
+							})
+						}
+					}
+				}
+				if len(shouldConditions) > 0 {
+					mustConditions = append(mustConditions, map[string]interface{}{
+						"bool": map[string]interface{}{
+							"should":               shouldConditions,
+							"minimum_should_match": 1,
+						},
+					})
+				}
+			} else if str, ok := value.(string); ok && len(str) > 0 {
+				if len(str) >= 2 && str[0] == '/' && str[len(str)-1] == '/' {
+					mustConditions = append(mustConditions, map[string]interface{}{
+						"regexp": map[string]interface{}{
+							field: str[1 : len(str)-1],
+						},
+					})
+				} else if containsWildcard(str) {
+					mustConditions = append(mustConditions, map[string]interface{}{
+						"wildcard": map[string]interface{}{
+							field: str,
+						},
+					})
+				} else if len(str) >= 1 && str[0] == '#' {
+					mustConditions = append(mustConditions, map[string]interface{}{
+						"match": map[string]interface{}{
+							field: str[1:], // 去掉开头的 #
+						},
+					})
+				} else {
+					mustConditions = append(mustConditions, map[string]interface{}{
+						"term": map[string]interface{}{
+							field: str,
+						},
+					})
+				}
+			}
+		}
+	}
 
-	panic("unimplemented")
+	esQuery := map[string]interface{}{
+		"from": (req.Page - 1) * req.Size,
+		"size": req.Size,
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"must": append(mustConditions, map[string]interface{}{
+					"range": map[string]interface{}{
+						"price": map[string]interface{}{
+							"gte": 0,
+							"lte": 8999,
+						},
+					},
+				}),
+			},
+		},
+	}
+
+	queryJSON, err := json.Marshal(esQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	search := g.data.EsClient.Search
+	resp, err := search(
+		search.WithContext(ctx),
+		search.WithIndex("mygoods_v2"),
+		search.WithBody(bytes.NewReader(queryJSON)),
+		search.WithTrackTotalHits(true),
+		search.WithPretty(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("error in search response: %s", resp.String())
+	}
+
+	var searchResult map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&searchResult); err != nil {
+		return nil, err
+	}
+
+	hits := searchResult["hits"].(map[string]interface{})["hits"].([]interface{})
+	results := make([]*biz.GoodsInfoResponse, 0, len(hits))
+	for _, hit := range hits {
+		source := hit.(map[string]interface{})["_source"].(map[string]interface{})
+		idStr := hit.(map[string]interface{})["_id"].(string)
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, &biz.GoodsInfoResponse{
+			ID:          id,
+			Name:        source["name"].(string),
+			Tags:        source["tags"].(string),
+			Type:        source["type"].(string),
+			Description: source["description"].(string),
+			Price:       source["price"].(float64),
+			Quantity:    int32(source["quantity"].(float64)),
+		})
+	}
+
+	return &biz.SearchGoodsResponse{
+		Results: results,
+	}, nil
+}
+
+// containsWildcard checks if a string contains wildcard characters.
+func containsWildcard(s string) bool {
+	return strings.Contains(s, "*")
 }
 
 // UpdateGoods implements biz.GoodsRepo.

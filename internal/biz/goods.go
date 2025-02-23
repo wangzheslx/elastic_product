@@ -87,7 +87,9 @@ type GoodsInfoResponse struct {
 
 // SearchGoodsRequest 是搜索商品的请求消息
 type SearchGoodsRequest struct {
-	Query string // 搜索查询
+	Query map[string]interface{}
+	Page  int32
+	Size  int32
 }
 
 // SearchGoodsResponse 是搜索商品的响应消息

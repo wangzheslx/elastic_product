@@ -3,6 +3,7 @@ syntax = "proto3";
 package product.v1;
 
 import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
 
 option go_package = "product-service/api/product/v1;v1";
 option java_multiple_files = true;
@@ -45,7 +46,8 @@ service ProductService {
   // 搜索商品
   rpc SearchGoods(SearchGoodsRequest) returns (SearchGoodsResponse) {
     option (google.api.http) = {
-      get: "/v1/goods/search"
+      post: "/v1/goods/search"
+      body: "*"
     };
   }
 
@@ -127,7 +129,9 @@ message GoodsInfoResponse {
 
 // 搜索商品的请求消息
 message SearchGoodsRequest {
-  string query = 1; // 搜索查询
+  google.protobuf.Struct query = 1; // 搜索查询条件
+  int32 page = 2; // 页码
+  int32 pageSize = 3; // 每页数量
 }
 
 // 搜索商品的响应消息
