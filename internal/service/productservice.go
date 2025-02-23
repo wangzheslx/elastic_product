@@ -27,6 +27,7 @@ func (s *ProductServiceService) CreateGoods(ctx context.Context, req *pb.CreateG
 		Description: req.Description,
 		Price:       req.Price,
 		Quantity:    req.Quantity,
+		NameSuggest: req.NameSuggest,
 	}
 	resp, err := s.gc.CreateGoods(ctx, bizReq)
 	if err != nil {
@@ -60,6 +61,7 @@ func (s *ProductServiceService) GoodsList(ctx context.Context, req *pb.GoodsFilt
 			Description: goods.Description,
 			Price:       goods.Price,
 			Quantity:    goods.Quantity,
+			NameSuggest: goods.NameSuggest,
 		})
 	}
 	return &pb.GoodsListResponse{
@@ -68,10 +70,35 @@ func (s *ProductServiceService) GoodsList(ctx context.Context, req *pb.GoodsFilt
 	}, nil
 }
 func (s *ProductServiceService) UpdateGoods(ctx context.Context, req *pb.UpdateGoodsRequest) (*pb.UpdateGoodsResponse, error) {
-	return &pb.UpdateGoodsResponse{}, nil
+	bizReq := &biz.UpdateGoodsRequest{
+		ID:          req.Id,
+		Name:        req.Name,
+		Tags:        req.Tags,
+		Type:        req.Type,
+		Description: req.Description,
+		Price:       req.Price,
+		Quantity:    req.Quantity,
+		NameSuggest: req.NameSuggest,
+	}
+	resp, err := s.gc.UpdateGoods(ctx, bizReq)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.UpdateGoodsResponse{
+		Success: resp.Success,
+	}, nil
 }
 func (s *ProductServiceService) DeleteGoods(ctx context.Context, req *pb.DeleteGoodsRequest) (*pb.DeleteGoodsResponse, error) {
-	return &pb.DeleteGoodsResponse{}, nil
+	bizReq := &biz.DeleteGoodsRequest{
+		ID: req.Id,
+	}
+	resp, err := s.gc.DeleteGoods(ctx, bizReq)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.DeleteGoodsResponse{
+		Success: resp.Success,
+	}, nil
 }
 func (s *ProductServiceService) SearchGoods(ctx context.Context, req *pb.SearchGoodsRequest) (*pb.SearchGoodsResponse, error) {
 	bizReq := &biz.SearchGoodsRequest{
@@ -96,6 +123,7 @@ func (s *ProductServiceService) SearchGoods(ctx context.Context, req *pb.SearchG
 			Description: goods.Description,
 			Price:       goods.Price,
 			Quantity:    goods.Quantity,
+			NameSuggest: goods.NameSuggest,
 		})
 	}
 	return &pb.SearchGoodsResponse{
@@ -103,7 +131,18 @@ func (s *ProductServiceService) SearchGoods(ctx context.Context, req *pb.SearchG
 	}, nil
 }
 func (s *ProductServiceService) AutocompleteSearch(ctx context.Context, req *pb.AutoCompleteRequest) (*pb.AutoCompleteResponse, error) {
-	return &pb.AutoCompleteResponse{}, nil
+	bizReq := &biz.AutoCompleteRequest{
+		Prefix: req.Prefix,
+	}
+	resp, err := s.gc.AutocompleteSearch(ctx, bizReq)
+	if err != nil {
+		return nil, err
+	}
+	suggestions := make([]string, 0)
+	suggestions = append(suggestions, resp.Suggestions...)
+	return &pb.AutoCompleteResponse{
+		Suggestions: suggestions,
+	}, nil
 }
 
 func structToMap(s *structpb.Struct) map[string]interface{} {

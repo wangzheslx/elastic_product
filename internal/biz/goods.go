@@ -25,6 +25,7 @@ type CreateGoodsRequest struct {
 	Description string  // 商品描述
 	Price       float64 // 商品价格
 	Quantity    int32   // 商品数量
+	NameSuggest string  // 商品名称建议
 }
 
 // CreateGoodsResponse 是创建商品的响应消息
@@ -41,6 +42,7 @@ type UpdateGoodsRequest struct {
 	Description string  // 商品描述
 	Price       float64 // 商品价格
 	Quantity    int32   // 商品数量
+	NameSuggest string  // 商品名称建议
 }
 
 // UpdateGoodsResponse 是更新商品的响应消息
@@ -83,6 +85,7 @@ type GoodsInfoResponse struct {
 	Description string  // 商品描述
 	Price       float64 // 商品价格
 	Quantity    int32   // 商品数量
+	NameSuggest string  // 商品名称建议
 }
 
 // SearchGoodsRequest 是搜索商品的请求消息

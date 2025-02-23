@@ -67,6 +67,7 @@ message CreateGoodsRequest {
   string description = 4; // 商品描述
   double price = 5; // 商品价格
   int32 quantity = 6; // 商品数量
+  string name_suggest = 7; // 商品名称建议
 }
 
 // 创建商品的响应消息
@@ -83,6 +84,7 @@ message UpdateGoodsRequest {
   string description = 5; // 商品描述
   double price = 6; // 商品价格
   int32 quantity = 7; // 商品数量
+  string name_suggest = 8; // 商品标签建议
 }
 
 // 更新商品的响应消息
@@ -125,6 +127,7 @@ message GoodsInfoResponse {
   string description = 5; // 商品描述
   double price = 6; // 商品价格
   int32 quantity = 7; // 商品数量
+  string name_suggest = 8; // 商品名称建议
 }
 
 // 搜索商品的请求消息

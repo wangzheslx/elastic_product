@@ -210,6 +210,8 @@ components:
                 quantity:
                     type: integer
                     format: int32
+                nameSuggest:
+                    type: string
             description: 创建商品的请求消息
         CreateGoodsResponse:
             type: object
@@ -242,6 +244,8 @@ components:
                 quantity:
                     type: integer
                     format: int32
+                nameSuggest:
+                    type: string
             description: 商品信息响应消息
         GoodsListResponse:
             type: object
@@ -324,6 +328,8 @@ components:
                 quantity:
                     type: integer
                     format: int32
+                nameSuggest:
+                    type: string
             description: 更新商品的请求消息
         UpdateGoodsResponse:
             type: object

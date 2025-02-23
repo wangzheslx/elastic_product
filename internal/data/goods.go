@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"product/internal/biz"
 	"strconv"
 	"strings"
+
+	"errors"
 
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -19,9 +20,69 @@ type greeterRepo struct {
 	log  *log.Helper
 }
 
-// AutocompleteSearch implements biz.GoodsRepo.
-func (g *greeterRepo) AutocompleteSearch(context.Context, *biz.AutoCompleteRequest) (*biz.AutoCompleteResponse, error) {
-	panic("unimplemented")
+func (g *greeterRepo) AutocompleteSearch(ctx context.Context, req *biz.AutoCompleteRequest) (*biz.AutoCompleteResponse, error) {
+	// 构建查询条件
+	query := map[string]interface{}{
+		"suggest": map[string]interface{}{
+			"goods-suggest": map[string]interface{}{
+				"prefix": req.Prefix,
+				"completion": map[string]interface{}{
+					"field": "name_suggest",
+					"size":  10,
+					"fuzzy": map[string]interface{}{
+						"fuzziness": 2,
+					},
+				},
+			},
+		},
+	}
+
+	queryJSON, err := json.Marshal(query)
+	if err != nil {
+		return nil, err
+	}
+
+	// 执行查询操作
+	search := g.data.EsClient.Search
+	resp, err := search(
+		search.WithContext(ctx),
+		search.WithIndex("mygoods_v3"),
+		search.WithBody(bytes.NewReader(queryJSON)),
+		search.WithTrackTotalHits(true),
+		search.WithPretty(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.IsError() {
+		return nil, fmt.Errorf("error in search response: %s", resp.String())
+	}
+
+	var searchResult map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&searchResult); err != nil {
+		return nil, err
+	}
+
+	suggestions := []string{}
+	if suggest, ok := searchResult["suggest"].(map[string]interface{}); ok {
+		if goodsSuggest, ok := suggest["goods-suggest"].([]interface{}); ok {
+			for _, item := range goodsSuggest {
+				if options, ok := item.(map[string]interface{})["options"].([]interface{}); ok {
+					for _, option := range options {
+						if text, ok := option.(map[string]interface{})["text"].(string); ok {
+							suggestions = append(suggestions, text)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return &biz.AutoCompleteResponse{
+		Suggestions: suggestions,
+	}, nil
 }
 
 //create Index
@@ -87,6 +148,7 @@ func (g *greeterRepo) CreateGoods(ctx context.Context, req *biz.CreateGoodsReque
 	reqmap["description"] = req.Description
 	reqmap["price"] = req.Price
 	reqmap["quantity"] = req.Quantity
+	reqmap["name_suggest"] = req.NameSuggest
 
 	restr, err := json.Marshal(reqmap)
 	if err != nil {
@@ -113,7 +175,7 @@ func (g *greeterRepo) CreateGoods(ctx context.Context, req *biz.CreateGoodsReque
 	create := g.data.EsClient.Create
 	ids := req.Quantity
 	idStrs := strconv.Itoa(int(ids))
-	resp, err := create("mygoods", idStrs, doc, create.WithPretty())
+	resp, err := create("mygoods_v3", idStrs, doc, create.WithPretty())
 	if err != nil {
 		return nil, err
 	}
@@ -155,8 +217,38 @@ func (g *greeterRepo) CreateGoods(ctx context.Context, req *biz.CreateGoodsReque
 }
 
 // DeleteGoods implements biz.GoodsRepo.
-func (g *greeterRepo) DeleteGoods(context.Context, *biz.DeleteGoodsRequest) (*biz.DeleteGoodsResponse, error) {
-	panic("unimplemented")
+func (g *greeterRepo) DeleteGoods(ctx context.Context, req *biz.DeleteGoodsRequest) (*biz.DeleteGoodsResponse, error) {
+	delete := g.data.EsClient.Delete
+	idStr := strconv.Itoa(int(req.ID))
+	resp, err := delete("mygoods_v3", idStr, delete.WithPretty())
+	if err != nil {
+		return nil, err
+	}
+
+	g.log.Info("****************", resp)
+	fmt.Println(resp)
+	var respmap map[string]interface{}
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(bodyBytes, &respmap)
+	if err != nil {
+		return nil, err
+	}
+	if respmap["error"] != nil {
+		if reason, ok := respmap["error"].(map[string]interface{}); ok {
+			return nil, errors.New(reason["reason"].(string))
+		}
+		return nil, errors.New("delete error")
+	}
+
+	fmt.Println("###################\n", respmap)
+	fmt.Println(respmap["result"])
+
+	return &biz.DeleteGoodsResponse{
+		Success: true,
+	}, nil
 }
 
 // GoodsList implements biz.GoodsRepo.
@@ -291,7 +383,7 @@ func (g *greeterRepo) SearchGoods(ctx context.Context, req *biz.SearchGoodsReque
 	search := g.data.EsClient.Search
 	resp, err := search(
 		search.WithContext(ctx),
-		search.WithIndex("mygoods_v2"),
+		search.WithIndex("mygoods_v3"),
 		search.WithBody(bytes.NewReader(queryJSON)),
 		search.WithTrackTotalHits(true),
 		search.WithPretty(),
@@ -327,6 +419,7 @@ func (g *greeterRepo) SearchGoods(ctx context.Context, req *biz.SearchGoodsReque
 			Description: source["description"].(string),
 			Price:       source["price"].(float64),
 			Quantity:    int32(source["quantity"].(float64)),
+			NameSuggest: source["name_suggest"].(string),
 		})
 	}
 
@@ -341,8 +434,63 @@ func containsWildcard(s string) bool {
 }
 
 // UpdateGoods implements biz.GoodsRepo.
-func (g *greeterRepo) UpdateGoods(context.Context, *biz.UpdateGoodsRequest) (*biz.UpdateGoodsResponse, error) {
-	panic("unimplemented")
+func (g *greeterRepo) UpdateGoods(ctx context.Context, req *biz.UpdateGoodsRequest) (*biz.UpdateGoodsResponse, error) {
+	var reqmap = make(map[string]interface{})
+	reqmap["name"] = req.Name
+	reqmap["tags"] = req.Tags
+	reqmap["type"] = req.Type
+	reqmap["description"] = req.Description
+	reqmap["price"] = req.Price
+	reqmap["quantity"] = req.Quantity
+	reqmap["name_suggest"] = req.NameSuggest
+
+	updateDoc := map[string]interface{}{
+		"doc": reqmap,
+	}
+
+	updateJSON, err := json.Marshal(updateDoc)
+	if err != nil {
+		return nil, err
+	}
+
+	update := g.data.EsClient.Update
+	idStr := strconv.Itoa(int(req.ID))
+	resp, err := update("mygoods_v3", idStr, bytes.NewReader(updateJSON), update.WithPretty())
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	g.log.Info("****************", resp)
+	fmt.Println(resp)
+	var respmap map[string]interface{}
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(bodyBytes, &respmap)
+	if err != nil {
+		return nil, err
+	}
+	if respmap["error"] != nil {
+		if reason, ok := respmap["error"].(map[string]interface{}); ok {
+			return nil, errors.New(reason["reason"].(string))
+		}
+		return nil, errors.New("update error")
+	}
+
+	fmt.Println("###################\n", respmap)
+	fmt.Println(respmap["_id"])
+
+	idStr = respmap["_id"].(string)
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	g.log.Info("******************", id)
+	return &biz.UpdateGoodsResponse{
+		Success: true,
+	}, err
 }
 
 func NewGoodsRepo(data *Data, logger log.Logger) biz.GoodsRepo {
